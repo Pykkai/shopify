@@ -15,6 +15,21 @@
 # - add a rule to convert .cpp to .o separate from building the app
 #   so they do not get rebuilt every time
 
+# Coding agent commands
+
+codex:
+	bin/codex
+
+dox:
+	bin/dox
+
+fixit:
+	bin/fixit
+
+starter:
+	bin/starter
+
+
 # Keep the build layout explicit so the project is easy to inspect and extend
 # during review. The debug and release binaries are emitted separately to avoid
 # flag confusion and to make it obvious which artifact is being run.
@@ -28,8 +43,8 @@ SOURCES := $(filter-out $(SRC_DIR)/template.cpp,$(wildcard $(SRC_DIR)/*.cpp))
 BUILD_DIR := build
 DEBUG_OBJ_DIR := $(BUILD_DIR)/debug
 RELEASE_OBJ_DIR := $(BUILD_DIR)/release
-DEBUG_BIN := $(BUILD_DIR)/hello-debug
-RELEASE_BIN := $(BUILD_DIR)/hello-release
+DEBUG_BIN := $(BUILD_DIR)/fizzbuzz-debug
+RELEASE_BIN := $(BUILD_DIR)/fizzbuzz-release
 DEBUG_OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(DEBUG_OBJ_DIR)/%.o,$(SOURCES))
 RELEASE_OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(RELEASE_OBJ_DIR)/%.o,$(SOURCES))
 
