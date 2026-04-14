@@ -193,6 +193,7 @@ doxygen: $(DOXYFILE)
 		echo "Error: doxygen is not installed or not on PATH." >&2; \
 		exit 1; \
 	fi
+	rm -rf $(DOC_DIR)
 	$(DOXYGEN) $(DOXYFILE)
 
 clean-doc:

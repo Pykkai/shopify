@@ -20,3 +20,5 @@ std::vector<std::string> generate(int n);
 }  // namespace fizzbuzz
 
 #endif  // _FIZZBUZZ_H_
+
+// EOF ************************************************************************

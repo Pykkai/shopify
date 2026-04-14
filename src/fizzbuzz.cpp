@@ -1,5 +1,10 @@
 // Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai
 
+/******************************************************************************
+ ** @file fizzbuzz.cpp
+ ** @brief - implement reusable FizzBuzz generation helpers.
+ */
+
 #include "fizzbuzz.h"
 
 #include <string>
@@ -52,3 +57,5 @@ std::vector<std::string> fizzbuzz::generate(const int n)
 
     return answer;
 }
+
+// EOF ************************************************************************
