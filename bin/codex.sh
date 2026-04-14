@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
+# Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai
+
 set -euo pipefail
+
+# @codex
+# - pass arguments from the command line, these identify the specific
+#   files codex should be checking for tags
+# - args may contain wildcard
+# - if no arguments are given all files in the repo are examined for
+#   as yet unprocessed tags
 
 # - see https://pyyk.ai/?p=19
 
@@ -59,6 +68,8 @@ run_codex_with_model() {
   codex exec -m "$model" --sandbox workspace-write <<'EOF_PROMPT' 2>&1 | tee "$output_file"
 - find source files in this repository with the tag @codex in comments
 - hint: these files will appear in a git status or git diff
+- this includes .sh files
+- do not look in the doc or build directories, these contain generated files
 - the comments following the @codex tags are instructions for you
 - instructions end with the comment block or tag @xedoc
 - generate a session timestap at the beginning of each session in the form

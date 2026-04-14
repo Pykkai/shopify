@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai
+
 set -euo pipefail
 
 # - see https://pyyk.ai/?p=19
@@ -9,8 +11,13 @@ set -euo pipefail
 #
 # jq -r '.models[].slug' ~/.codex/models_cache.json
 
-codex exec -m gpt-5.4 --sandbox workspace-write <<'EOF'
+main() {
+  cat <<'EOF_PROMPT' | codex exec -m gpt-5.4 --sandbox workspace-write
 - add doxygen docs for all namespaces, classes, structs, variables, functions, method, class members
 - follow the formats in  src/template.h and src/template.cpp
 - add a copyright statement with the current year if any file lacks one
-EOF
+- find tags @dox and add documents at that location for the scope or statements following
+EOF_PROMPT
+}
+
+main "$@"

@@ -1,7 +1,10 @@
+# Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai
+
 *.o
 *.a
 *.so
 build
+doc/
 \#*#
 .#*
 *~

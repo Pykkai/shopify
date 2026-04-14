@@ -16,9 +16,16 @@
 // - usually have a types.h as the project's type dictionary
 #include "types.h"
 
-// - pyyka is the project's namespace
-namespace pyyka
+/******************************************************************************
+ ** @brief - hold the project's public types.
+ */
+// - MyNamespace is the project's namespace
+namespace MyNamespace
 {
+  /**************************************************************************
+   ** @brief - demonstrate class declaration documentation style.
+   ** - use this layout for real classes in header files
+   */
   class ClassName
   {
     // - every private, protected and public section follows the pattern:
@@ -27,23 +34,48 @@ namespace pyyka
     // - destructors section
     // - methods in alphabetical order
   private:
-    // @doxygen
+    /************************************************************************
+     ** @brief - store private string state for the instance.
+     */
     string my_private_member_variable;
   protected:
-    // @doxygen
+    /************************************************************************
+     ** @brief - store protected string state for derived classes.
+     */
     string my_protected_member_variable;
   public:
-    // @doxygen
+    /************************************************************************
+     ** @brief - expose public string state for template illustration.
+     */
     string my_public_member_variable;
-    // @doxygen
+
+    /************************************************************************
+     ** @brief - construct the sample object from a string.
+     ** @param foo - source string for member initialization.
+     */
     ClassName(string &foo);
-    // @doxygen
+
+    /************************************************************************
+     ** @brief - destroy the sample object.
+     */
     ~ClassName();
-    // @doxygen
+
+    /************************************************************************
+     ** @brief - return a transformed public string value.
+     ** @param s - caller supplied string input.
+     ** @return - processed string result.
+     */
     string my_public_method(string &s);
-    // @doxygen
+
+    /************************************************************************
+     ** @brief - demonstrate documentation for a static class method.
+     */
     static void my_static_method();
-    // @doxygen
+
+    /************************************************************************
+     ** @brief - expose read-only virtual string access.
+     ** @return - reference to internal string state.
+     */
     virtual const string &my_virtual_method() const;
   };
 }

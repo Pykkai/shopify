@@ -17,6 +17,9 @@
 namespace fs = std::filesystem;
 using namespace std;
 
+/******************************************************************************
+ ** @brief - hold file-local helper functions for the template.
+ */
 // - the @doxygen tag indicates where doxygen documentation should be provided
 
 // - utility functions (helpers) go at the top of the file before
@@ -25,8 +28,9 @@ using namespace std;
 namespace
 {
   /****************************************************************************
-   ** - this is the comment style for helper functions
-   ** @doxygen
+   ** @brief - demonstrate helper documentation style in implementation files.
+   ** @param s - caller supplied string input.
+   ** @return - sample helper result.
    */
   string helper(string &s) {
     // - body of helper
@@ -37,17 +41,18 @@ namespace
 // - class related stuff follows
 
 // - note that I prefer using the full scope in defintions rather than wrapping
-//   everything in a namespace pyyka {...}
+//   everything in a namespace MyNamespace {...}
 // - the order is ctors, dtors, followed by methods in alphabetical order
 //   (easiest to find)
 
 /******************************************************************************
+ ** @brief - construct the sample object from a string.
  ** - mark constructors with CTOR
- ** @doxygen
+ ** - source string initializes all member state from the header contract.
  ** - note the reference definitions, the ampersand should be associated with
  **   the variable name, NOT the type
  */
-CTOR pyyka::ClassName::ClassName(string &foo): my_private_member_variable(foo),
+CTOR MyNamespace::ClassName::ClassName(string &foo): my_private_member_variable(foo),
 				    my_protected_member_variable(foo),
 				    my_public_member_variable(foo)
 {
@@ -55,40 +60,42 @@ CTOR pyyka::ClassName::ClassName(string &foo): my_private_member_variable(foo),
 }
 
 /******************************************************************************
+ ** @brief - destroy the sample object.
  ** - destructor marked with DTOR
- ** @doxygen
  */
-DTOR pyyka::ClassName::~ClassName() {
+DTOR MyNamespace::ClassName::~ClassName() {
   return;
 }
 
 /******************************************************************************
- ** - method template
+ ** @brief - return the provided string unchanged.
+ ** - implementation follows the API contract documented in the header.
  */
-string pyyka::ClassName::my_public_method(string &s) {
+string MyNamespace::ClassName::my_public_method(string &s) {
   return s;
 }
 
 /******************************************************************************
+ ** @brief - demonstrate documentation for a static class method.
  ** - class static method marked with STATIC
  ** - static class methods are preferred over static file methods (helpers)
  **   including anonymous namespaces)
  ** - the class should be the one whose type is modified by the method
  **   or most accessed my the method
  ** - this prevents duplication and cut & paste coding
- ** @doxygen
  */
-STATIC void pyyka::ClassName::my_static_method() {
+STATIC void MyNamespace::ClassName::my_static_method() {
   return;
 }
 
 /******************************************************************************
+ ** @brief - return read-only access to private string state.
+ ** @return - private member string reference.
  ** - method template
  ** - virtual methods when first defined are marked with VIRTUAL
  ** - when overridden in a derived class marked with OVERRIDE
- ** @doxygen
  */
-VIRTUAL const string &pyyka::ClassName::my_virtual_method() const {
+VIRTUAL const string &MyNamespace::ClassName::my_virtual_method() const {
   return my_private_member_variable;
 }
 

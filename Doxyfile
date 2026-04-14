@@ -1,0 +1,59 @@
+# Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai
+#
+# @review 2026-04-14 12:14
+# - keep the Doxygen configuration small and explicit so the generated output
+#   is predictable during review and stays focused on the active source tree.
+
+# @codex 2026-04-14 12:39
+# - doxygen documentation appears to be missing for the main.cpp file?
+# @revision
+# - 2026-04-14 12:39 Added a file-level Doxygen block to `src/main.cpp` so
+#   the generated file list includes the application entry point.
+# @review 2026-04-14 12:39
+
+# - identify the project in generated documentation output.
+PROJECT_NAME           = "shopify"
+PROJECT_BRIEF          = "Application Starter sample project"
+
+# - emit generated documentation into the repository-local doc directory.
+OUTPUT_DIRECTORY       = doc
+CREATE_SUBDIRS         = NO
+
+# - anchor the docs on the repository README and only scan active project
+#   sources. The retired tree is excluded because it is archived.
+USE_MDFILE_AS_MAINPAGE = README.md
+INPUT                  = README.md src
+FILE_PATTERNS          = *.md \
+                         *.h \
+                         *.cpp
+RECURSIVE              = YES
+EXCLUDE                = retired \
+                         build
+EXCLUDE_PATTERNS       = */.#* \
+                         */#*#
+EXCLUDE_SYMLINKS       = YES
+
+# - generate browsable HTML only for this prototype project.
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+
+# - keep warnings visible for missing documentation and keep console noise low
+#   enough that real issues stand out during review.
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+
+# - interpret brief comments using the comment style established in the source
+#   templates so single-block doc comments render as intended.
+JAVADOC_BANNER         = YES
+JAVADOC_AUTOBRIEF      = YES
+MULTILINE_CPP_IS_BRIEF = YES
+
+# - expose private and static members because the repository instructions ask
+#   for broad source-level documentation coverage during review.
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+FULL_PATH_NAMES        = NO

@@ -1,3 +1,5 @@
+<!-- Copyright (C) 2026 Brad Shapcott brad@shapcott.com brash@pyyk.ai -->
+
 # Application Starter
 
 Specify the application in this markdown file, then run ***./bin/starter.sh***
