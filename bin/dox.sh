@@ -17,6 +17,7 @@ main() {
 - follow the formats in  src/template.h and src/template.cpp
 - add a copyright statement with the current year if any file lacks one
 - find tags @dox and add documents at that location for the scope or statements following
+- exclude everything in the test directory
 EOF_PROMPT
 }
 

@@ -37,6 +37,8 @@ fixit:
 starter:
 	bin/starter
 
+testit:
+	bin/testit
 
 # Keep the build layout explicit so the project is easy to inspect and extend
 # during review. The debug and release binaries are emitted separately to avoid
@@ -103,8 +105,9 @@ CPPUNIT_MISSING := 1
 CPPUNIT_SOURCE := missing
 endif
 
-.PHONY: all debug release test test-debug test-release test-run-debug \
-	test-run-release check-cppunit docs doxygen clean clean-doc
+.PHONY: codex dox fixit starter testit all debug release test test-debug \
+	test-release test-run-debug test-run-release check-cppunit docs doxygen \
+	clean clean-doc
 
 # Default to building both variants because the repository-level instruction
 # explicitly requests a debug and a release configuration.

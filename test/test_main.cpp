@@ -5,8 +5,6 @@
 #include <cppunit/TextTestRunner.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
-#include "placeholder_suite.h"
-
 int main()
 {
     CppUnit::TextTestRunner runner;
