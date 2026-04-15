@@ -45,6 +45,12 @@ testit:
 # flag confusion and to make it obvious which artifact is being run.
 CXX := c++
 CXXFLAGS := -std=c++23 -Wall -Wextra -Wpedantic
+USE_TORCH ?= 0
+TORCH_DIR ?= $(HOME)/libtorch
+TORCH_INC = -I$(TORCH_DIR)/include -I$(TORCH_DIR)/include/torch/csrc/api/include
+TORCH_LIB = -L$(TORCH_DIR)/lib -Wl,-rpath,$(TORCH_DIR)/lib -ltorch -ltorch_cpu -lc10
+TORCH_CXXFLAGS :=
+TORCH_LDFLAGS :=
 SRC_DIR := src
 TEST_DIR := test
 # Keep the source discovery automatic for real application files while
@@ -59,10 +65,10 @@ RELEASE_OBJ_DIR := $(BUILD_DIR)/release
 TEST_BUILD_DIR := $(BUILD_DIR)/test
 TEST_DEBUG_OBJ_DIR := $(TEST_BUILD_DIR)/debug
 TEST_RELEASE_OBJ_DIR := $(TEST_BUILD_DIR)/release
-DEBUG_BIN := $(BUILD_DIR)/fizzbuzz-debug
-RELEASE_BIN := $(BUILD_DIR)/fizzbuzz-release
-TEST_DEBUG_BIN := $(TEST_BUILD_DIR)/fizzbuzz-tests-debug
-TEST_RELEASE_BIN := $(TEST_BUILD_DIR)/fizzbuzz-tests-release
+DEBUG_BIN := $(BUILD_DIR)/app-debug
+RELEASE_BIN := $(BUILD_DIR)/app-release
+TEST_DEBUG_BIN := $(TEST_BUILD_DIR)/app-tests-debug
+TEST_RELEASE_BIN := $(TEST_BUILD_DIR)/app-tests-release
 DEBUG_OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(DEBUG_OBJ_DIR)/%.o,$(APP_SOURCES))
 RELEASE_OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(RELEASE_OBJ_DIR)/%.o,$(APP_SOURCES))
 TEST_DEBUG_TEST_OBJ := $(patsubst $(TEST_DIR)/%.cpp,$(TEST_DEBUG_OBJ_DIR)/%.o,$(TEST_SOURCES))
@@ -77,6 +83,11 @@ DOC_DIR := doc
 PKG_CONFIG_CPPUNIT_PATH := /opt/homebrew/lib/pkgconfig
 CPPUNIT_CFLAGS ?=
 CPPUNIT_LIBS ?=
+
+ifeq ($(USE_TORCH),1)
+TORCH_CXXFLAGS := $(TORCH_INC)
+TORCH_LDFLAGS := $(TORCH_LIB)
+endif
 
 ifneq ($(strip $(CPPUNIT_CFLAGS)$(CPPUNIT_LIBS)),)
 ifeq ($(strip $(CPPUNIT_CFLAGS)),)
@@ -106,27 +117,27 @@ CPPUNIT_SOURCE := missing
 endif
 
 .PHONY: codex dox fixit starter testit all debug release test test-debug \
-	test-release test-run-debug test-run-release check-cppunit docs doxygen \
+	test-release test-run-debug test-run-release check-cppunit check-torch docs doxygen \
 	clean clean-doc
 
 # Default to building both variants because the repository-level instruction
 # explicitly requests a debug and a release configuration.
 all: debug release
 
-debug: $(DEBUG_BIN)
+debug: check-torch $(DEBUG_BIN)
 
-release: $(RELEASE_BIN)
+release: check-torch $(RELEASE_BIN)
 
 test: test-run-debug
 
-test-debug: check-cppunit $(TEST_DEBUG_BIN)
+test-debug: check-torch check-cppunit $(TEST_DEBUG_BIN)
 
-test-release: check-cppunit $(TEST_RELEASE_BIN)
+test-release: check-torch check-cppunit $(TEST_RELEASE_BIN)
 
-test-run-debug: check-cppunit $(TEST_DEBUG_BIN)
+test-run-debug: check-torch check-cppunit $(TEST_DEBUG_BIN)
 	$(TEST_DEBUG_BIN)
 
-test-run-release: check-cppunit $(TEST_RELEASE_BIN)
+test-run-release: check-torch check-cppunit $(TEST_RELEASE_BIN)
 	$(TEST_RELEASE_BIN)
 
 # Create the build output directory on demand so fresh clones can build
@@ -138,42 +149,58 @@ $(BUILD_DIR) $(DEBUG_OBJ_DIR) $(RELEASE_OBJ_DIR) $(TEST_BUILD_DIR) $(TEST_DEBUG_
 # can be reused across repeated debug builds. The pattern rule keeps the source
 # to object mapping explicit without duplicating a rule for each file.
 $(DEBUG_OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O0 -g -c $< -o $@
 
 # Compile release objects separately for the same incremental-build benefit
 # while also keeping release-only flags isolated from the debug build output.
 $(RELEASE_OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
 
 $(TEST_DEBUG_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp | $(TEST_DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O0 -g -c $< -o $@
 
 $(TEST_RELEASE_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp | $(TEST_RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O2 -DNDEBUG -c $< -o $@
 
 $(TEST_DEBUG_OBJ_DIR)/src_%.o: $(SRC_DIR)/%.cpp | $(TEST_DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O0 -g -c $< -o $@
 
 $(TEST_RELEASE_OBJ_DIR)/src_%.o: $(SRC_DIR)/%.cpp | $(TEST_RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
 
 # Link the debug binary from the already-built object files so source changes
 # only force recompilation of the affected translation units before the final
 # link step runs.
 $(DEBUG_BIN): $(DEBUG_OBJ) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g $(DEBUG_OBJ) -o $(DEBUG_BIN)
+	$(CXX) $(CXXFLAGS) -O0 -g $(DEBUG_OBJ) $(TORCH_LDFLAGS) -o $(DEBUG_BIN)
 
 # Link the release binary from the release object files to preserve the same
 # dependency shape as the debug build while keeping optimization flags aligned
 # with the objects that were compiled for this configuration.
 $(RELEASE_BIN): $(RELEASE_OBJ) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(RELEASE_OBJ) -o $(RELEASE_BIN)
+	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(RELEASE_OBJ) $(TORCH_LDFLAGS) -o $(RELEASE_BIN)
 
 $(TEST_DEBUG_BIN): $(TEST_DEBUG_OBJ) | $(TEST_BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g $(TEST_DEBUG_OBJ) $(CPPUNIT_LIBS) -o $(TEST_DEBUG_BIN)
+	$(CXX) $(CXXFLAGS) -O0 -g $(TEST_DEBUG_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) -o $(TEST_DEBUG_BIN)
 
 $(TEST_RELEASE_BIN): $(TEST_RELEASE_OBJ) | $(TEST_BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(TEST_RELEASE_OBJ) $(CPPUNIT_LIBS) -o $(TEST_RELEASE_BIN)
+	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(TEST_RELEASE_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) -o $(TEST_RELEASE_BIN)
+
+check-torch:
+ifeq ($(USE_TORCH),1)
+	@if [ ! -d "$(TORCH_DIR)/include/torch/csrc/api/include" ]; then \
+		echo "Error: libtorch include path not found under TORCH_DIR='$(TORCH_DIR)'." >&2; \
+		echo "Expected: $(TORCH_DIR)/include/torch/csrc/api/include" >&2; \
+		echo "Example override: make debug USE_TORCH=1 TORCH_DIR=/path/to/libtorch" >&2; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(TORCH_DIR)/lib" ]; then \
+		echo "Error: libtorch library path not found under TORCH_DIR='$(TORCH_DIR)'." >&2; \
+		echo "Expected: $(TORCH_DIR)/lib" >&2; \
+		echo "Example override: make debug USE_TORCH=1 TORCH_DIR=/path/to/libtorch" >&2; \
+		exit 1; \
+	fi
+endif
 
 check-cppunit:
 ifeq ($(CPPUNIT_MISSING),1)

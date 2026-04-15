@@ -2,40 +2,45 @@
 
 # Application Starter
 
-Specify the application in this markdown file, then run ***./bin/starter.sh***
+This repository is a greenfield C++ application scaffold.
 
-# FizzBuzz
+Use this README as your project specification source, then run `./bin/starter.sh`
+to apply scaffold-driven updates.
 
-- This application should replace the Hello World implementation.
-- The application will receive a single argument on the command line.
-- This argument must be a positive integer.
-- Otherwise an error message is displayed along with usage.
+## Purpose
 
-## Specification
+- Provide a minimal C++23 app skeleton with debug/release builds.
+- Keep infrastructure ready for CppUnit tests, optional libtorch, and Doxygen docs.
 
-Given an integer n, return a string array answer (1-indexed) where:
+## Requirements
 
-answer[i] == "FizzBuzz" if i is divisible by 3 and 5.
-answer[i] == "Fizz" if i is divisible by 3.
-answer[i] == "Buzz" if i is divisible by 5.
-answer[i] == i (as a string) if none of the above conditions are true.
- 
-## Example 1:
+- `c++` compiler with C++23 support.
+- `make`.
+- Optional:
+- `cppunit` for test targets.
+- `doxygen` for docs targets.
+- `libtorch` when building with `USE_TORCH=1`.
 
-Input: n = 3
-Output: ["1","2","Fizz"]
+## Build
 
-## Example 2:
+- Debug: `make debug`
+- Release: `make release`
 
-Input: n = 5
-Output: ["1","2","Fizz","4","Buzz"]
+## Run
 
-## Example 3:
+- Debug binary: `./build/app-debug`
+- Release binary: `./build/app-release`
 
-Input: n = 15
-Output: ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
- 
+## Test
 
-## Constraints:
+- Build debug tests: `make test-debug`
+- Run debug tests: `make test`
+- Build release tests: `make test-release`
+- Run release tests: `make test-run-release`
 
-1 <= n <= 104.
+## Next Steps
+
+- Define your app behavior and interfaces in this README.
+- Implement application logic in `src/`.
+- Replace placeholder tests in `test/` with real CppUnit suites.
+- Keep API, CLI, and acceptance criteria updated as the project evolves.
