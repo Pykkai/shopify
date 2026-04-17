@@ -22,6 +22,12 @@
 # - 2026-04-14 12:14 Added repository-level Doxygen build targets and a
 #   dedicated configuration file that emits generated docs into `doc/`.
 # @review 2026-04-14 12:14
+# @codex 2026-04-17 13:10
+# - add a help target to this Makefile
+# @revision
+# - 2026-04-17 13:10 Added a `help` target that lists the primary build,
+#   test, documentation, cleanup, and helper command entry points.
+# @review 2026-04-17 13:10
 
 # Coding agent commands
 
@@ -116,13 +122,44 @@ CPPUNIT_MISSING := 1
 CPPUNIT_SOURCE := missing
 endif
 
-.PHONY: codex dox fixit starter testit all debug release test test-debug \
+.PHONY: codex dox fixit starter testit help all debug release test test-debug \
 	test-release test-run-debug test-run-release check-cppunit check-torch docs doxygen \
 	clean clean-doc
 
 # Default to building both variants because the repository-level instruction
 # explicitly requests a debug and a release configuration.
 all: debug release
+
+# Keep the help text hand-written so it stays readable in the Makefile and so
+# review does not depend on parsing comments or shell helpers to understand the
+# advertised interface. The target groups the commands by common workflow to
+# make the repository entry points obvious for a quick human scan.
+help:
+	@printf '%s\n' \
+		'Project targets:' \
+		'  all              Build both debug and release binaries.' \
+		'  debug            Build the debug application binary.' \
+		'  release          Build the release application binary.' \
+		'  test             Build and run the debug test suite.' \
+		'  test-debug       Build the debug test binary.' \
+		'  test-release     Build the release test binary.' \
+		'  test-run-debug   Build and run the debug test binary.' \
+		'  test-run-release Build and run the release test binary.' \
+		'  docs             Generate Doxygen output in doc/.' \
+		'  doxygen          Same as docs.' \
+		'  clean            Remove build/ and doc/.' \
+		'  clean-doc        Remove doc/ only.' \
+		'  codex            Run the repository Codex helper command.' \
+		'  dox              Run the documentation helper command.' \
+		'  fixit            Run the repository fix helper command.' \
+		'  starter          Run the starter helper command.' \
+		'  testit           Run the repository test helper command.' \
+		'' \
+		'Key variables:' \
+		'  USE_TORCH=1      Enable libtorch include and link flags.' \
+		'  TORCH_DIR=PATH   Override the libtorch installation root.' \
+		'  CPPUNIT_CFLAGS   Override detected CppUnit compiler flags.' \
+		'  CPPUNIT_LIBS     Override detected CppUnit linker flags.'
 
 debug: check-torch $(DEBUG_BIN)
 
