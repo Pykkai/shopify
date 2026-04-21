@@ -3,12 +3,17 @@
 
 set -euo pipefail
 
-# @codex
+# @codex 2026-04-21 10:07
 # - pass arguments from the command line, these identify the specific
 #   files codex should be checking for tags
 # - args may contain wildcard
 # - if no arguments are given all files in the repo are examined for
 #   as yet unprocessed tags
+# @revision
+# - 2026-04-21 10:07 Added optional path arguments to the generated
+#   Codex prompt so each run can be scoped to specific files while
+#   keeping repository-wide scans as the default behavior.
+# @review 2026-04-21 10:07
 
 # - see https://pyyk.ai/?p=19
 
@@ -62,10 +67,13 @@ model_is_in_cache() {
 run_codex_with_model() {
   local model="$1"
   local output_file="$2"
+  shift 2
 
-  # Keep all CLI output visible while also capturing it for failure inspection.
-  set +e
-  codex exec -m "$model" --sandbox workspace-write <<'EOF_PROMPT' 2>&1 | tee "$output_file"
+  # Build the prompt once so the caller can optionally scope the run to the
+  # files named on the command line without duplicating the shared repository
+  # instructions in multiple heredocs.
+  local prompt
+  prompt="$(cat <<'EOF_PROMPT'
 - find source files in this repository with the tag @codex in comments
 - hint: these files will appear in a git status or git diff
 - this includes .sh files
@@ -93,6 +101,23 @@ run_codex_with_model() {
   and variables; these templates should also be used in refactoring when  moving
   methods etc.
 EOF_PROMPT
+)"
+
+  # Preserve shell-expanded wildcards and literal path arguments exactly as the
+  # caller supplied them so the session can be constrained to the requested
+  # files instead of forcing a full-repository scan every time.
+  if [[ $# -gt 0 ]]; then
+    prompt+=$'\n- only examine the following files or path patterns for unprocessed tags:\n'
+
+    local target
+    for target in "$@"; do
+      printf -v prompt '%s- %s\n' "$prompt" "$target"
+    done
+  fi
+
+  # Keep all CLI output visible while also capturing it for failure inspection.
+  set +e
+  printf '%s\n' "$prompt" | codex exec -m "$model" --sandbox workspace-write 2>&1 | tee "$output_file"
   local status=${PIPESTATUS[0]}
   set -e
 
@@ -109,6 +134,7 @@ is_model_compat_error() {
 main() {
   local -a candidates=()
   local -a available_models=()
+  local -a target_args=("$@")
 
   mapfile -t candidates < <(build_candidate_models)
   mapfile -t available_models < <(get_available_models)
@@ -124,7 +150,7 @@ main() {
     local output_file
     output_file="$(mktemp)"
 
-    if run_codex_with_model "$model" "$output_file"; then
+    if run_codex_with_model "$model" "$output_file" "${target_args[@]}"; then
       rm -f "$output_file"
       return 0
     fi

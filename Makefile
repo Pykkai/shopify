@@ -1,64 +1,60 @@
 # Copyright 2026 Brad Shapcott brad@shapcott.com
 
-# @codex 2026-04-14 10:27
-# - fill in the makefile to compile the hello world app
-# - create both a release and debug version
-# @revision
-# - 2026-04-14 10:27 Added a minimal Makefile with separate debug and
-#   release builds for the sample application.
-# - 2026-04-14 10:44 Refactored the build to compile configuration-specific
-#   object files before linking the debug and release binaries.
-# @review 2026-04-14 10:27
-# @review 2026-04-14 10:44
-#
-# @codex 2026-04-14 10:44
-# - add a rule to convert .cpp to .o separate from building the app
-#   so they do not get rebuilt every time
-#
-# @codex 2026-04-14 12:14
-# - add commands to generate doxygen documentation from the doxygen
-#   comments in source and place in the doc directory
-# @revision
-# - 2026-04-14 12:14 Added repository-level Doxygen build targets and a
-#   dedicated configuration file that emits generated docs into `doc/`.
-# @review 2026-04-14 12:14
-# @codex 2026-04-17 13:10
-# - add a help target to this Makefile
-# @revision
-# - 2026-04-17 13:10 Added a `help` target that lists the primary build,
-#   test, documentation, cleanup, and helper command entry points.
-# @review 2026-04-17 13:10
+# Keep the repository helper commands near the top for discoverability while
+# still making the application release build the default `make` entry point.
+.DEFAULT_GOAL := release
 
 # Coding agent commands
 
 codex:
-	bin/codex
+	bash bin/codex
 
 dox:
-	bin/dox
+	bash bin/dox
 
-fixit:
-	bin/fixit
+broken:
+	bash bin/broken
 
 starter:
-	bin/starter
+	bash bin/starter
 
-testit:
-	bin/testit
+testable:
+	bash bin/testable
+
+update:
+	bash bin/update
 
 # Keep the build layout explicit so the project is easy to inspect and extend
 # during review. The debug and release binaries are emitted separately to avoid
 # flag confusion and to make it obvious which artifact is being run.
 CXX := c++
 CXXFLAGS := -std=c++23 -Wall -Wextra -Wpedantic
-USE_TORCH ?= 0
-TORCH_DIR ?= $(HOME)/libtorch
-TORCH_INC = -I$(TORCH_DIR)/include -I$(TORCH_DIR)/include/torch/csrc/api/include
+USE_TORCH ?= 1
+USE_MLPACK ?= 1
+CPP_DEFINES := -DUSE_TORCH=$(USE_TORCH)
+TORCH_DIR ?= 3p/libtorch
+MLPACK_DIR ?= 3p/mlpack-4.6.2/src
+# Treat libtorch headers as third-party system headers so warnings from those
+# upstream headers do not drown out warnings from this project.
+TORCH_INC = -isystem $(TORCH_DIR)/include -isystem $(TORCH_DIR)/include/torch/csrc/api/include
 TORCH_LIB = -L$(TORCH_DIR)/lib -Wl,-rpath,$(TORCH_DIR)/lib -ltorch -ltorch_cpu -lc10
+MLPACK_INC = -isystem $(MLPACK_DIR) -isystem /opt/homebrew/include
+MLPACK_LIB = -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -larmadillo
 TORCH_CXXFLAGS :=
 TORCH_LDFLAGS :=
+MLPACK_CXXFLAGS :=
+MLPACK_LDFLAGS :=
+SQLITE_LIBS ?= -lsqlite3
+PYTHON3 ?= python3
 SRC_DIR := src
 TEST_DIR := test
+DATA_DIR := data
+TEST_DATA_CSV := $(DATA_DIR)/generated_test_data.csv
+TEST_DATA_DB := $(DATA_DIR)/generated_test_data.sqlite3
+TEST_DATA_TABLE ?= generated_samples
+TEST_DATA_ROWS ?= 10000
+TEST_DATA_COLUMNS ?= 4
+TEST_DATA_SEED ?= 20260421
 # Keep the source discovery automatic for real application files while
 # excluding the template translation unit because it is a style guide, not a
 # buildable part of the sample program.
@@ -95,6 +91,11 @@ TORCH_CXXFLAGS := $(TORCH_INC)
 TORCH_LDFLAGS := $(TORCH_LIB)
 endif
 
+ifeq ($(USE_MLPACK),1)
+MLPACK_CXXFLAGS := $(MLPACK_INC)
+MLPACK_LDFLAGS := $(MLPACK_LIB)
+endif
+
 ifneq ($(strip $(CPPUNIT_CFLAGS)$(CPPUNIT_LIBS)),)
 ifeq ($(strip $(CPPUNIT_CFLAGS)),)
 CPPUNIT_MISSING := 1
@@ -123,8 +124,8 @@ CPPUNIT_SOURCE := missing
 endif
 
 .PHONY: codex dox fixit starter testit help all debug release test test-debug \
-	test-release test-run-debug test-run-release check-cppunit check-torch docs doxygen \
-	clean clean-doc
+	test-release test-run-debug test-run-release test-data run-test-data \
+	check-cppunit check-torch docs doxygen clean clean-doc
 
 # Default to building both variants because the repository-level instruction
 # explicitly requests a debug and a release configuration.
@@ -145,6 +146,8 @@ help:
 		'  test-release     Build the release test binary.' \
 		'  test-run-debug   Build and run the debug test binary.' \
 		'  test-run-release Build and run the release test binary.' \
+		'  test-data        Generate matching CSV and SQLite fixtures in data/.' \
+		'  run-test-data    Build the debug app, generate fixtures, then load both sources.' \
 		'  docs             Generate Doxygen output in doc/.' \
 		'  doxygen          Same as docs.' \
 		'  clean            Remove build/ and doc/.' \
@@ -157,25 +160,39 @@ help:
 		'' \
 		'Key variables:' \
 		'  USE_TORCH=1      Enable libtorch include and link flags.' \
+		'  USE_MLPACK=1     Enable mlpack and Armadillo include/link flags.' \
 		'  TORCH_DIR=PATH   Override the libtorch installation root.' \
+		'  MLPACK_DIR=PATH  Override the vendored mlpack include root.' \
+		'  TEST_DATA_ROWS=N Number of generated fixture rows.' \
+		'  TEST_DATA_COLUMNS=N Number of generated fixture columns.' \
+		'  TEST_DATA_SEED=N Seed for deterministic fixture generation.' \
 		'  CPPUNIT_CFLAGS   Override detected CppUnit compiler flags.' \
 		'  CPPUNIT_LIBS     Override detected CppUnit linker flags.'
 
-debug: check-torch $(DEBUG_BIN)
+debug: check-torch check-mlpack $(DEBUG_BIN)
 
-release: check-torch $(RELEASE_BIN)
+release: check-torch check-mlpack $(RELEASE_BIN)
 
 test: test-run-debug
 
-test-debug: check-torch check-cppunit $(TEST_DEBUG_BIN)
+test-debug: check-torch check-mlpack check-cppunit $(TEST_DEBUG_BIN)
 
-test-release: check-torch check-cppunit $(TEST_RELEASE_BIN)
+test-release: check-torch check-mlpack check-cppunit $(TEST_RELEASE_BIN)
 
-test-run-debug: check-torch check-cppunit $(TEST_DEBUG_BIN)
+test-run-debug: check-torch check-mlpack check-cppunit $(TEST_DEBUG_BIN)
 	$(TEST_DEBUG_BIN)
 
-test-run-release: check-torch check-cppunit $(TEST_RELEASE_BIN)
+test-run-release: check-torch check-mlpack check-cppunit $(TEST_RELEASE_BIN)
 	$(TEST_RELEASE_BIN)
+
+test-data:
+	mkdir -p $(DATA_DIR)
+	TEST_DATA_CSV="$(TEST_DATA_CSV)" TEST_DATA_DB="$(TEST_DATA_DB)" TEST_DATA_TABLE="$(TEST_DATA_TABLE)" \
+	TEST_DATA_ROWS="$(TEST_DATA_ROWS)" TEST_DATA_COLUMNS="$(TEST_DATA_COLUMNS)" TEST_DATA_SEED="$(TEST_DATA_SEED)" \
+	$(PYTHON3) bin/generate-test-data.py
+
+run-test-data: debug test-data
+	bin/load-test-data.sh $(DEBUG_BIN)
 
 # Create the build output directory on demand so fresh clones can build
 # without any manual setup step.
@@ -186,42 +203,42 @@ $(BUILD_DIR) $(DEBUG_OBJ_DIR) $(RELEASE_OBJ_DIR) $(TEST_BUILD_DIR) $(TEST_DEBUG_
 # can be reused across repeated debug builds. The pattern rule keeps the source
 # to object mapping explicit without duplicating a rule for each file.
 $(DEBUG_OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) -O0 -g -c $< -o $@
 
 # Compile release objects separately for the same incremental-build benefit
 # while also keeping release-only flags isolated from the debug build output.
 $(RELEASE_OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
 
 $(TEST_DEBUG_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp | $(TEST_DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O0 -g -c $< -o $@
 
 $(TEST_RELEASE_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp | $(TEST_RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) $(CPPUNIT_CFLAGS) -I$(SRC_DIR) -O2 -DNDEBUG -c $< -o $@
 
 $(TEST_DEBUG_OBJ_DIR)/src_%.o: $(SRC_DIR)/%.cpp | $(TEST_DEBUG_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O0 -g -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) -O0 -g -c $< -o $@
 
 $(TEST_RELEASE_OBJ_DIR)/src_%.o: $(SRC_DIR)/%.cpp | $(TEST_RELEASE_OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(TORCH_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPP_DEFINES) $(TORCH_CXXFLAGS) $(MLPACK_CXXFLAGS) -O2 -DNDEBUG -c $< -o $@
 
 # Link the debug binary from the already-built object files so source changes
 # only force recompilation of the affected translation units before the final
 # link step runs.
 $(DEBUG_BIN): $(DEBUG_OBJ) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g $(DEBUG_OBJ) $(TORCH_LDFLAGS) -o $(DEBUG_BIN)
+	$(CXX) $(CXXFLAGS) -O0 -g $(DEBUG_OBJ) $(TORCH_LDFLAGS) $(MLPACK_LDFLAGS) $(SQLITE_LIBS) -o $(DEBUG_BIN)
 
 # Link the release binary from the release object files to preserve the same
 # dependency shape as the debug build while keeping optimization flags aligned
 # with the objects that were compiled for this configuration.
 $(RELEASE_BIN): $(RELEASE_OBJ) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(RELEASE_OBJ) $(TORCH_LDFLAGS) -o $(RELEASE_BIN)
+	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(RELEASE_OBJ) $(TORCH_LDFLAGS) $(MLPACK_LDFLAGS) $(SQLITE_LIBS) -o $(RELEASE_BIN)
 
 $(TEST_DEBUG_BIN): $(TEST_DEBUG_OBJ) | $(TEST_BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g $(TEST_DEBUG_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) -o $(TEST_DEBUG_BIN)
+	$(CXX) $(CXXFLAGS) -O0 -g $(TEST_DEBUG_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) $(MLPACK_LDFLAGS) $(SQLITE_LIBS) -o $(TEST_DEBUG_BIN)
 
 $(TEST_RELEASE_BIN): $(TEST_RELEASE_OBJ) | $(TEST_BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(TEST_RELEASE_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) -o $(TEST_RELEASE_BIN)
+	$(CXX) $(CXXFLAGS) -O2 -DNDEBUG $(TEST_RELEASE_OBJ) $(CPPUNIT_LIBS) $(TORCH_LDFLAGS) $(MLPACK_LDFLAGS) $(SQLITE_LIBS) -o $(TEST_RELEASE_BIN)
 
 check-torch:
 ifeq ($(USE_TORCH),1)
@@ -235,6 +252,26 @@ ifeq ($(USE_TORCH),1)
 		echo "Error: libtorch library path not found under TORCH_DIR='$(TORCH_DIR)'." >&2; \
 		echo "Expected: $(TORCH_DIR)/lib" >&2; \
 		echo "Example override: make debug USE_TORCH=1 TORCH_DIR=/path/to/libtorch" >&2; \
+		exit 1; \
+	fi
+endif
+
+check-mlpack:
+ifeq ($(USE_MLPACK),1)
+	@if [ ! -d "$(MLPACK_DIR)/mlpack" ]; then \
+		echo "Error: mlpack headers not found under MLPACK_DIR='$(MLPACK_DIR)'." >&2; \
+		echo "Expected: $(MLPACK_DIR)/mlpack" >&2; \
+		echo "Example override: make debug USE_MLPACK=1 MLPACK_DIR=/path/to/mlpack/src" >&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "/opt/homebrew/include/armadillo" ]; then \
+		echo "Error: Armadillo headers not found at /opt/homebrew/include/armadillo." >&2; \
+		echo "Install Armadillo or adjust MLPACK include/link flags in the Makefile." >&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "/opt/homebrew/lib/libarmadillo.dylib" ]; then \
+		echo "Error: Armadillo library not found at /opt/homebrew/lib/libarmadillo.dylib." >&2; \
+		echo "Install Armadillo or adjust MLPACK include/link flags in the Makefile." >&2; \
 		exit 1; \
 	fi
 endif
