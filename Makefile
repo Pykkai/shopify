@@ -45,16 +45,12 @@ TORCH_LDFLAGS :=
 MLPACK_CXXFLAGS :=
 MLPACK_LDFLAGS :=
 SQLITE_LIBS ?= -lsqlite3
-PYTHON3 ?= python3
 SRC_DIR := src
 TEST_DIR := test
 DATA_DIR := data
 TEST_DATA_CSV := $(DATA_DIR)/generated_test_data.csv
 TEST_DATA_DB := $(DATA_DIR)/generated_test_data.sqlite3
-TEST_DATA_TABLE ?= generated_samples
 TEST_DATA_ROWS ?= 10000
-TEST_DATA_COLUMNS ?= 4
-TEST_DATA_SEED ?= 20260421
 # Keep the source discovery automatic for real application files while
 # excluding the template translation unit because it is a style guide, not a
 # buildable part of the sample program.
@@ -164,8 +160,6 @@ help:
 		'  TORCH_DIR=PATH   Override the libtorch installation root.' \
 		'  MLPACK_DIR=PATH  Override the vendored mlpack include root.' \
 		'  TEST_DATA_ROWS=N Number of generated fixture rows.' \
-		'  TEST_DATA_COLUMNS=N Number of generated fixture columns.' \
-		'  TEST_DATA_SEED=N Seed for deterministic fixture generation.' \
 		'  CPPUNIT_CFLAGS   Override detected CppUnit compiler flags.' \
 		'  CPPUNIT_LIBS     Override detected CppUnit linker flags.'
 
@@ -185,11 +179,9 @@ test-run-debug: check-torch check-mlpack check-cppunit $(TEST_DEBUG_BIN)
 test-run-release: check-torch check-mlpack check-cppunit $(TEST_RELEASE_BIN)
 	$(TEST_RELEASE_BIN)
 
-test-data:
+test-data: debug
 	mkdir -p $(DATA_DIR)
-	TEST_DATA_CSV="$(TEST_DATA_CSV)" TEST_DATA_DB="$(TEST_DATA_DB)" TEST_DATA_TABLE="$(TEST_DATA_TABLE)" \
-	TEST_DATA_ROWS="$(TEST_DATA_ROWS)" TEST_DATA_COLUMNS="$(TEST_DATA_COLUMNS)" TEST_DATA_SEED="$(TEST_DATA_SEED)" \
-	$(PYTHON3) bin/generate-test-data.py
+	$(DEBUG_BIN) --generate-test-data --size "$(TEST_DATA_ROWS)"
 
 run-test-data: debug test-data
 	bin/load-test-data.sh $(DEBUG_BIN)
